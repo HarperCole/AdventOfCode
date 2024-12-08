@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -43,4 +44,14 @@ func TransformStringSliceInto2DMatrix(input []string) [][]string {
 		toReturn = append(toReturn, strings.Split(line, ""))
 	}
 	return toReturn
+}
+
+// ParseInt is a helper function to convert a string into an int
+func ParseInt(s string) int {
+	val, err := strconv.Atoi(s)
+	if err != nil {
+		fmt.Println("Error trying to parse int from string: ", err)
+		os.Exit(1)
+	}
+	return val
 }
