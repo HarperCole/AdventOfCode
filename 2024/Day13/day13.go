@@ -16,6 +16,11 @@ const (
 	bigPrize = 10000000000000
 )
 
+/*
+Advent of Code Day 13:
+	part 1: You are given a system of equations then need to find a combination that satisfies both answers. I just did some math to figure this out
+	part 2: I had to do some searching on what kind of math would be needed to solve this, and I found out that some linear algebra could be used to solve the larger prizes
+*/
 func main() {
 	input := util.ReadInput(util.Parameter())
 	machines := captureMachines(strings.Join(input, "\n"))
