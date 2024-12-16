@@ -19,8 +19,8 @@ const (
 */
 
 // robot is a struct representation
-//  - position holds the x,y coordinates of the robot
-//  - velocity holds the dx,dy of the robot
+//   - position holds the x,y coordinates of the robot
+//   - velocity holds the dx,dy of the robot
 type robot struct {
 	position [2]int
 	velocity [2]int
