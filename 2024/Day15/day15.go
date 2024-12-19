@@ -4,6 +4,7 @@ import (
 	util "2024/until"
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -44,8 +45,8 @@ func main() {
 	splitIndex := slices.Index(input, "")
 	grid, robotDirections := util.TransformStringSliceInto2DMatrix(input[:splitIndex]), strings.Split(strings.Join(input[splitIndex:], ""), "")
 	doubledGrid := doubleGrid(grid)
-	//part1(grid, robotDirections)
-	printGrid(doubledGrid, "Initial State:")
+	part1(grid, robotDirections)
+	//printGrid(doubledGrid, "Initial State:")
 	part2(doubledGrid, robotDirections)
 }
 
@@ -76,7 +77,7 @@ func part2(grid [][]string, robotDirections []string) {
 		// Handle vertical movement into wide boxes
 		if dir == up || dir == down {
 			if grid[targetPos[0]][targetPos[1]] == leftBox || grid[targetPos[0]][targetPos[1]] == rightBox {
-				if moveVerticalBoxes(grid, targetPos, move) {
+				if moveVerticalBoxes(grid, targetPos, move, dir) {
 					grid[robotPosition[0]][robotPosition[1]] = empty
 					robotPosition = targetPos
 					grid[robotPosition[0]][robotPosition[1]] = robot
@@ -94,96 +95,105 @@ func part2(grid [][]string, robotDirections []string) {
 				grid[robotPosition[0]][robotPosition[1]] = robot
 			}
 		}
+		//	printGrid(grid, dir)
 	}
 
 	gps := calculateGPS(grid)
 	fmt.Println("(part 2) Ans: ", gps)
 }
 
-func moveVerticalBoxes(grid [][]string, robotPos [2]int, move [2]int) bool {
+func moveVerticalBoxes(grid [][]string, robotPos [2]int, move [2]int, dir string) bool {
 	boxes := findConnectedBoxes(grid, robotPos, move)
 	// Validate if all boxes can move
 
 	rows := make(map[int][]boxx)
-	counter := make(map[int]int)
+	keys := make([]int, 0)
+	// sort boxes by row, ascending if moving up, descending if moving down
 	for _, box := range boxes {
-		currRow := box.left[0]
-		rows[currRow] = append(rows[currRow], boxx{box.left, box.right})
-		counter[currRow]++
+		row := box.leftSide[0]
+		if !slices.Contains(keys, row) {
+			keys = append(keys, row)
+		}
+		rows[row] = append(rows[row], box)
 	}
 
-	for i := len(boxes) - 1; i >= 0; i-- {
-		newLeft := [2]int{boxes[i].left[0] + move[0], boxes[i].left[1] + move[1]}
-		newRight := [2]int{boxes[i].right[0] + move[0], boxes[i].right[1] + move[1]}
-		if grid[newLeft[0]][newLeft[1]] == empty && grid[newRight[0]][newRight[1]] == empty {
-			counter[boxes[i].left[0]]--
-			if counter[boxes[i].left[0]] == 0 {
-				// can move all boxes in the row
-				for _, box := range rows[boxes[i].left[0]] {
-					newLeft := [2]int{box.leftSide[0] + move[0], box.leftSide[1] + move[1]}
-					newRight := [2]int{box.rightSide[0] + move[0], box.rightSide[1] + move[1]}
-					grid[box.leftSide[0]][box.leftSide[1]] = empty
-					grid[box.rightSide[0]][box.rightSide[1]] = empty
-					grid[newLeft[0]][newLeft[1]] = leftBox
-					grid[newRight[0]][newRight[1]] = rightBox
-				}
-			}
-		} else {
-			return false
+	sort.Slice(keys, func(i, j int) bool {
+		if dir == up {
+			return keys[i] < keys[j]
 		}
+		return keys[i] > keys[j]
+	})
+
+	simulatedGrid := make([][]string, len(grid))
+	for r := 0; r < len(grid); r++ {
+		simulatedGrid[r] = make([]string, len(grid[0]))
+		copy(simulatedGrid[r], grid[r])
+	}
+
+	for _, row := range keys {
+		boxes := rows[row]
+		// Check if the boxes can move
+		for _, box := range boxes {
+			left, right := box.leftSide, box.rightSide
+			if simulatedGrid[left[0]+move[0]][left[1]+move[1]] == empty && simulatedGrid[right[0]+move[0]][right[1]+move[1]] == empty {
+				moveItem(simulatedGrid, left, move)
+				moveItem(simulatedGrid, right, move)
+			} else {
+				return false
+			}
+
+		}
+	}
+
+	// If all boxes can move, update the grid
+	for r := 0; r < len(grid); r++ {
+		copy(grid[r], simulatedGrid[r])
 	}
 
 	return true
 }
 
-func findConnectedBoxes(grid [][]string, start [2]int, move [2]int) []struct {
-	left  [2]int // Position of `[`
-	right [2]int // Position of `]`
-} {
-	boxes := []struct {
-		left  [2]int
-		right [2]int
-	}{}
+func findConnectedBoxes(grid [][]string, start [2]int, move [2]int) []boxx {
 
-	queue := [][2]int{start} // Start from the robot's initial position
-	visited := make(map[[2]int]bool)
+	boxes := make([]boxx, 0)
+	visited := make(map[boxx]bool)
+	var initialBox boxx
+	if grid[start[0]][start[1]] == leftBox {
+		initialBox = boxx{start, [2]int{start[0], start[1] + 1}}
+	} else {
+		initialBox = boxx{[2]int{start[0], start[1] - 1}, start}
+	}
 
-	// BFS to find all connected boxes in the path
+	queue := []boxx{initialBox}
+
 	for len(queue) > 0 {
-		curr := queue[0]
+		current := queue[0]
 		queue = queue[1:]
-
-		// Skip if already visited
-		if visited[curr] {
+		if _, ok := visited[current]; ok {
 			continue
 		}
-		visited[curr] = true
+		visited[current] = true
+		boxes = append(boxes, current)
 
-		// Check if we are at the left side of a box
-		if grid[curr[0]][curr[1]] == leftBox {
-			boxes = append(boxes, struct {
-				left  [2]int
-				right [2]int
-			}{
-				left:  curr,
-				right: [2]int{curr[0], curr[1] + 1},
-			})
-			// Add the next position in the movement direction to the queue
-			next := [2]int{curr[0] + move[0], curr[1] + move[1]}
-			queue = append(queue, next)
+		// Check if there is a box to the left
+		if grid[current.leftSide[0]+move[0]][current.leftSide[1]+move[1]] == leftBox {
+			leftBox := boxx{[2]int{current.leftSide[0] + move[0], current.leftSide[1] + move[1]}, [2]int{current.leftSide[0] + move[0], current.leftSide[1] + move[1] + 1}}
+			queue = append(queue, leftBox)
 		}
 
-		// Check if we are at the right side of a box
-		if grid[curr[0]][curr[1]] == rightBox {
-			// Redirect to the corresponding left part of the box
-			left := [2]int{curr[0], curr[1] - 1}
-			next := [2]int{curr[0] + move[0], curr[1] + move[1]}
-			if !visited[left] {
-				queue = append(queue, left)
-			}
-			if !visited[next] {
-				queue = append(queue, next)
-			}
+		if grid[current.leftSide[0]+move[0]][current.leftSide[1]+move[1]] == rightBox {
+			leftBox := boxx{[2]int{current.leftSide[0] + move[0], current.leftSide[1] + move[1] - 1}, [2]int{current.leftSide[0] + move[0], current.leftSide[1] + move[1]}}
+			queue = append(queue, leftBox)
+		}
+		// Check if there is a box to the right
+		if grid[current.rightSide[0]+move[0]][current.rightSide[1]+move[1]] == rightBox {
+			rightBox := boxx{[2]int{current.rightSide[0] + move[0], current.rightSide[1] + move[1] - 1}, [2]int{current.rightSide[0] + move[0], current.rightSide[1] + move[1]}}
+			queue = append(queue, rightBox)
+		}
+
+		if grid[current.rightSide[0]+move[0]][current.rightSide[1]+move[1]] == leftBox {
+			rightBox := boxx{[2]int{current.rightSide[0] + move[0], current.rightSide[1] + move[1]}, [2]int{current.rightSide[0] + move[0], current.rightSide[1] + move[1] + 1}}
+			queue = append(queue, rightBox)
 		}
 	}
 
