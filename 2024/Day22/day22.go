@@ -3,7 +3,6 @@ package main
 import (
 	util "2024/until"
 	"fmt"
-	"sync"
 )
 
 const (
@@ -24,22 +23,10 @@ func main() {
 }
 
 func part1(input []int) {
-
-	results := make(chan int, len(input))
-	var waitGroup sync.WaitGroup
-
-	for _, secretNum := range input {
-		waitGroup.Add(1)
-		go calculateAllSecretNum(&waitGroup, secretNum, results, 2000)
-	}
-
-	go func() {
-		waitGroup.Wait()
-		close(results)
-	}()
-
+	secMap := make(map[int]int)
 	sum := 0
-	for result := range results {
+	for _, secretNum := range input {
+		result := calculateSecretNum(secretNum, 2000, &secMap)
 		sum += result
 	}
 
@@ -73,7 +60,7 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 
 	// Perform initial sequence calculation
 	for i := 0; i < 4; i++ {
-		secretNum = calculateSingleSecretNum(secretNum, 1, cache)
+		secretNum = calculateSecretNum(secretNum, 1, cache)
 		vals = append(vals, secretNum%10)
 		times--
 	}
@@ -81,7 +68,7 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 
 	// Process remaining times iteratively
 	for times > 1 {
-		secretNum = calculateSingleSecretNum(secretNum, 1, cache)
+		secretNum = calculateSecretNum(secretNum, 1, cache)
 		vals = vals[1:] // Shift window
 		vals = append(vals, secretNum%10)
 		currentSequence := sequence{vals[1] - vals[0], vals[2] - vals[1], vals[3] - vals[2], vals[4] - vals[3]}
@@ -94,13 +81,15 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 	return localMap
 }
 
-func calculateSingleSecretNum(secretNum int, times int, secMap *map[int]int) int {
+//func calculateSingleSecretNum(secretNum *int, times int, secMap *map[int]int) int {
+func calculateSecretNum(secretNum int, times int, secMap *map[int]int) int {
+
 	for times > 0 {
 		startNum := secretNum
 		if solution, ok := (*secMap)[startNum]; ok {
 			secretNum = solution
 		} else {
-			secretNum = calculateSecretNum(startNum)
+			secretNum = calculateSingleSecretNum(startNum)
 			(*secMap)[startNum] = secretNum
 		}
 		times--
@@ -108,17 +97,7 @@ func calculateSingleSecretNum(secretNum int, times int, secMap *map[int]int) int
 	return secretNum
 }
 
-func calculateAllSecretNum(waitGroup *sync.WaitGroup, secretNum int, results chan int, times int) {
-	defer waitGroup.Done()
-	sn := secretNum
-	for i := 0; i < times; i++ {
-		sn = calculateSecretNum(sn)
-	}
-	//fmt.Println("SecretNum: ", sn)
-	results <- sn
-}
-
-func calculateSecretNum(secretNum int) int {
+func calculateSingleSecretNum(secretNum int) int {
 	sn := secretNum
 	result := sn * 64
 	sn = mix(sn, result)

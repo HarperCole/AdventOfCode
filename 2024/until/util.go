@@ -55,3 +55,12 @@ func ParseInt(s string) int {
 	}
 	return val
 }
+
+func StringToIntSlice(input []string) []int {
+	toReturn := make([]int, 0)
+
+	for _, line := range input {
+		toReturn = append(toReturn, ParseInt(line))
+	}
+	return toReturn
+}
