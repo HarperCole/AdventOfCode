@@ -71,15 +71,18 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 	localMap := make(map[sequence]int)
 	vals := []int{secretNum % 10}
 
+	// Perform initial sequence calculation
 	for i := 0; i < 4; i++ {
-		calculateSingleSecretNum(&secretNum, 1, cache)
+		secretNum = calculateSingleSecretNum(secretNum, 1, cache)
 		vals = append(vals, secretNum%10)
 		times--
 	}
 	localMap[sequence{vals[1] - vals[0], vals[2] - vals[1], vals[3] - vals[2], vals[4] - vals[3]}] = vals[4]
+
+	// Process remaining times iteratively
 	for times > 1 {
-		calculateSingleSecretNum(&secretNum, 1, cache)
-		vals = vals[1:]
+		secretNum = calculateSingleSecretNum(secretNum, 1, cache)
+		vals = vals[1:] // Shift window
 		vals = append(vals, secretNum%10)
 		currentSequence := sequence{vals[1] - vals[0], vals[2] - vals[1], vals[3] - vals[2], vals[4] - vals[3]}
 		_, ok := localMap[currentSequence]
@@ -91,21 +94,18 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 	return localMap
 }
 
-func calculateSingleSecretNum(secretNum *int, times int, secMap *map[int]int) {
-	if times <= 0 {
-		return
+func calculateSingleSecretNum(secretNum int, times int, secMap *map[int]int) int {
+	for times > 0 {
+		startNum := secretNum
+		if solution, ok := (*secMap)[startNum]; ok {
+			secretNum = solution
+		} else {
+			secretNum = calculateSecretNum(startNum)
+			(*secMap)[startNum] = secretNum
+		}
+		times--
 	}
-
-	startNum := *secretNum
-	solution, ok := (*secMap)[startNum]
-	if ok {
-		*secretNum = solution
-		calculateSingleSecretNum(secretNum, times-1, secMap)
-	} else {
-		*secretNum = calculateSecretNum(startNum)
-		(*secMap)[startNum] = *secretNum
-		calculateSingleSecretNum(secretNum, times-1, secMap)
-	}
+	return secretNum
 }
 
 func calculateAllSecretNum(waitGroup *sync.WaitGroup, secretNum int, results chan int, times int) {
