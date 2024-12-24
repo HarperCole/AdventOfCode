@@ -2,7 +2,7 @@ package main
 
 import (
 	computer "2024/Day17/threebitcomputer"
-	util "2024/until"
+	"2024/util"
 	"fmt"
 	"regexp"
 	"slices"

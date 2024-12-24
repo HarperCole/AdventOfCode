@@ -1,7 +1,7 @@
 package main
 
 import (
-	util "2024/until"
+	util /until"
 	"fmt"
 )
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	util "2024/until"
+	"2024/util"
 	"fmt"
 )
 
@@ -81,7 +81,7 @@ func determineSequences(secretNum int, cache *map[int]int, times int) map[sequen
 	return localMap
 }
 
-//func calculateSingleSecretNum(secretNum *int, times int, secMap *map[int]int) int {
+// func calculateSingleSecretNum(secretNum *int, times int, secMap *map[int]int) int {
 func calculateSecretNum(secretNum int, times int, secMap *map[int]int) int {
 
 	for times > 0 {

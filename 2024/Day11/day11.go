@@ -1,7 +1,7 @@
 package main
 
 import (
-	util "2024/until"
+	"2024/util"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,7 +25,7 @@ type Task struct {
 
 // Result represents finished work
 //   - stoneNum: original stone number
-//	 - rounds: number of rounds that were computed
+//   - rounds: number of rounds that were computed
 //   - count: number of stones created from original stone and rounds worked
 type Result struct {
 	stoneNum int
